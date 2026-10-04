@@ -1,0 +1,32 @@
+#pragma once
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#define VAL(type, x) *((type*) x)
+
+#define LOGE(str) fprintf(stderr, str)
+#define LOGEQ(str) fprintf(stderr, str); exit(EXIT_FAILURE)
+
+// TODO: use __builtin_unreachable() in EXC and EXC_ARG
+
+#define THROW abort()
+#define EXC(str) fprintf(stderr, str); THROW
+#define EXC_ARG(str, arg) fprintf(stderr, str, arg); THROW
+#define UNIMPLEMENTED(str) EXC_ARG("unimplemented: %s\n", str)
+#define UNREACHABLE(str) EXC_ARG("unreachable: %s\n", str)
+
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef float f32;
+typedef double f64;

@@ -1,0 +1,6 @@
+[submodule "lib/tomlc17"]
+	path = lib/tomlc17
+	url = https://github.com/cktan/tomlc17.git
+[submodule "lib/o1heap"]
+	path = lib/o1heap
+	url = https://github.com/pavel-kirienko/o1heap.git

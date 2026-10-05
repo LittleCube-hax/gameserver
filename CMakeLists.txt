@@ -15,6 +15,9 @@ add_executable(${PROJECT_NAME})
 
 set(SOURCES
     ${PROJECT_SOURCE_DIR}/src/main.c
+    ${PROJECT_SOURCE_DIR}/src/client/client.c
+    ${PROJECT_SOURCE_DIR}/src/client/incoming.c
+    ${PROJECT_SOURCE_DIR}/src/client/outgoing.c
     ${PROJECT_SOURCE_DIR}/src/config.c
     ${PROJECT_SOURCE_DIR}/src/heap.c
     ${PROJECT_SOURCE_DIR}/src/swap_vector.c
@@ -37,6 +40,7 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/client
     ${PROJECT_SOURCE_DIR}/lib/o1heap/o1heap
     ${PROJECT_SOURCE_DIR}/lib/tomlc17/src
 )

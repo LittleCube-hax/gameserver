@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <pthread.h>
 
 #include <sys/socket.h>
@@ -12,6 +13,7 @@
 
 #include <common.h>
 #include <config.h>
+#include <client.h>
 #include <heap.h>
 #include <swap_vector.h>
 #include <utils.h>
@@ -20,42 +22,42 @@
 
 #define HEAP_SIZE 128*1024*1024
 
-typedef enum
-{
-	COMMAND_NONE = 0,
-} Command;
-
 int quit = 0;
 
 int sfd;
 
 SwapVector clients;
+server_rwlock_t clients_lock;
 
 void sig_q(int sig)
 {
 	quit = 1;
 	close(sfd);
-	exit(EXIT_SUCCESS);
 }
 
 void* listen_func(void* context)
 {
-	struct sockaddr next_client;
+	int next_fd;
+	server_socket_t next_client;
 	
 	unsigned int c_size;
 	
-	while (true)
+	while (!quit)
 	{
-		if (accept(sfd, &next_client, &c_size) < 0)
-		{
-			LOGE("couldn't accept\n");
-		}
+		next_fd = accept(sfd, &next_client, &c_size);
 		
-		else
+		if (next_fd >= 0)
 		{
-			svec_bump(&clients);
-			memcpy(SVEC_GET_TOP(&clients, struct sockaddr), &next_client, sizeof(struct sockaddr));
-			printf("accepted\n");
+			LOCK_WRITE(clients_lock,
+			{
+				svec_bump(&clients);
+				Client* top = SVEC_GET_TOP(&clients, Client);
+				
+				top->fd = next_fd;
+				memcpy(&top->sock, &next_client, sizeof(server_socket_t));
+				
+				client_init(top);
+			});
 		}
 	}
 	
@@ -69,14 +71,14 @@ int main(int argc, char** argv)
 	server_init_utils();
 	heap_init(HEAP_SIZE);
 	
-	svec_sized_init(&clients, sizeof(struct sockaddr));
+	svec_sized_init(&clients, sizeof(Client));
 	
 	if (!config_read("config.toml", &config))
 	{
 		return EXIT_FAILURE;
 	}
 	
-	sfd = socket(AF_INET, SOCK_STREAM, USE_DEFAULT);
+	sfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, USE_DEFAULT);
 	
 	if (sfd < 0)
 	{
@@ -95,7 +97,7 @@ int main(int argc, char** argv)
 	
 	addr.sin_port = htons(config.port);
 	
-	if (bind(sfd, (struct sockaddr*) &addr, sizeof(struct sockaddr_in)) < 0)
+	if (bind(sfd, (server_socket_t*) &addr, sizeof(struct sockaddr_in)) < 0)
 	{
 		LOGEQ("couldn't bind\n");
 		
@@ -114,14 +116,41 @@ int main(int argc, char** argv)
 	pthread_t listen_thread;
 	pthread_create(&listen_thread, NULL, listen_func, (void*) &sfd);
 	
+	while (!quit)
+	{
+		size_t len;
+		
+		LOCK_READ(clients_lock,
+		{
+			len = clients.length;
+			
+			for (size_t i = 0; i < len; ++i)
+			{
+				Client* this = SVEC_GET(&clients, Client, i);
+				
+				if (this->disconnected)
+				{
+					continue;
+				}
+				
+				client_handle(this);
+			}
+		});
+	}
+	
 join:
 	pthread_join(listen_thread, NULL);
 	
 release:
+	for (size_t i = 0; i < clients.length; ++i)
+	{
+		Client* this = SVEC_GET(&clients, Client, i);
+		close(this->fd);
+	}
+	
 	svec_release(&clients);
 	heap_shutdown();
 	server_deinit_utils();
-	close(sfd);
 	
 	return 0;
 }

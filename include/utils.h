@@ -23,6 +23,8 @@ typedef unsigned int (*runtime_thread_func)(void* arg);
 #elif defined(__GNUC__)
 // GCC
 
+#include <sys/socket.h>
+
 #define LIKELY(exp) __builtin_expect(exp, true)
 #define UNLIKELY(exp) __builtin_expect(exp, false)
 
@@ -32,6 +34,8 @@ typedef pthread_t server_thread_t;
 typedef void* (*runtime_thread_func)(void* arg);
 
 #endif
+
+typedef struct sockaddr server_socket_t;
 
 #define ENSURE_SIZE(ptr, new_size, capac, elem_size) \
 	if (UNLIKELY(new_size >= capac)) \
@@ -56,7 +60,7 @@ void grow_ptr_far(char** ptr, size_t* capacity_ptr, size_t elem_size, size_t new
 
 u32 get_elapsed_ms();
 u64 get_elapsed_ns();
-void recomp_sleep(u32 ms);
+void server_sleep(u32 ms);
 int getpagesize();
 
 char* vmem_reserve(size_t size);

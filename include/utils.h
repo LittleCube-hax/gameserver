@@ -66,7 +66,7 @@ int getpagesize();
 char* vmem_reserve(size_t size);
 void vmem_release(char* addr, size_t size);
 
-void thread_start(runtime_thread_func f, server_thread_t* handle);
+void thread_start(runtime_thread_func f, server_thread_t* handle, void* arg);
 void thread_exit();
 void thread_join(server_thread_t* handle);
 

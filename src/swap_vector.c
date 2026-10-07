@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include <common.h>
 #include <heap.h>
 #include <utils.h>
@@ -45,8 +47,7 @@ void svec_remove(SwapVector* v, size_t index)
 		return;
 	}
 	
-	char* this = &v->arena[v->length_bytes];
-	v->data[index] = UP(this);
+	memcpy(&v->arena[index*v->struct_size], &v->arena[v->length_bytes], v->struct_size);
 }
 
 void svec_pop(SwapVector* v)

@@ -14,8 +14,9 @@
 #include <common.h>
 #include <config.h>
 #include <client.h>
+#include <outgoing.h>
 #include <heap.h>
-#include <swap_vector.h>
+#include <list.h>
 #include <utils.h>
 
 #define USE_DEFAULT 0
@@ -26,7 +27,7 @@ int quit = 0;
 
 int sfd;
 
-SwapVector clients;
+List clients;
 server_rwlock_t clients_lock;
 
 void sig_q(int sig)
@@ -35,7 +36,35 @@ void sig_q(int sig)
 	close(sfd);
 }
 
-void* listen_func(void* context)
+DECLARE_RUNTIME_THREAD_FUNC(client_func)
+{
+	Node* n = (Node*) ctx;
+	Client* this = &n->client;
+	
+	while (!quit)
+	{
+		if (this->disconnected)
+		{
+			break;
+		}
+		
+		client_handle(this);
+		
+		server_sleep(0);
+	}
+	
+	LOCK_WRITE(clients_lock,
+	{
+		close(this->fd);
+		list_remove(&clients, n);
+	});
+	
+	thread_exit();
+	
+	return NULL;
+}
+
+DECLARE_RUNTIME_THREAD_FUNC(listen_func)
 {
 	int next_fd;
 	server_socket_t next_client;
@@ -50,16 +79,22 @@ void* listen_func(void* context)
 		{
 			LOCK_WRITE(clients_lock,
 			{
-				svec_bump(&clients);
-				Client* top = SVEC_GET_TOP(&clients, Client);
+				list_bump_back(&clients);
+				Node* n = clients.tail;
+				Client* top = &n->client;
 				
 				top->fd = next_fd;
-				memcpy(&top->sock, &next_client, sizeof(server_socket_t));
+				client_init(top, &next_client);
 				
-				client_init(top);
+				server_thread_t client_thread;
+				thread_start(client_func, &client_thread, n);
 			});
 		}
+		
+		server_sleep(0);
 	}
+	
+	thread_exit();
 	
 	return NULL;
 }
@@ -71,7 +106,7 @@ int main(int argc, char** argv)
 	server_init_utils();
 	heap_init(HEAP_SIZE);
 	
-	svec_sized_init(&clients, sizeof(Client));
+	list_init(&clients);
 	
 	if (!config_read("config.toml", &config))
 	{
@@ -104,7 +139,7 @@ int main(int argc, char** argv)
 		goto release;
 	}
 	
-	if (listen(sfd, 1) < 0)
+	if (listen(sfd, 16) < 0)
 	{
 		LOGEQ("couldn't listen\n");
 		
@@ -113,42 +148,41 @@ int main(int argc, char** argv)
 	
 	signal(SIGINT, sig_q);
 	
-	pthread_t listen_thread;
-	pthread_create(&listen_thread, NULL, listen_func, (void*) &sfd);
+	server_thread_t listen_thread;
+	thread_start(listen_func, &listen_thread, NULL);
 	
 	while (!quit)
 	{
-		size_t len;
-		
-		LOCK_READ(clients_lock,
+		LOCK_WRITE(clients_lock,
 		{
-			len = clients.length;
-			
-			for (size_t i = 0; i < len; ++i)
+			for (Node* n = clients.head; n != NULL; n = n->next)
 			{
-				Client* this = SVEC_GET(&clients, Client, i);
-				
-				if (this->disconnected)
-				{
-					continue;
-				}
-				
-				client_handle(this);
+				printf("pinging %d\n", n->client.fd);
+				cmd_send_ping(&n->client);
 			}
 		});
+		
+		server_sleep(1000);
 	}
 	
 join:
-	pthread_join(listen_thread, NULL);
+	thread_join(&listen_thread);
 	
 release:
-	for (size_t i = 0; i < clients.length; ++i)
+	LOCK_WRITE(clients_lock,
 	{
-		Client* this = SVEC_GET(&clients, Client, i);
-		close(this->fd);
-	}
+		for (Node* n = clients.head; n != NULL; n = n->next)
+		{
+			Client* this = &n->client;
+			printf("closing client %d\n", this->fd);
+			thread_join(&this->thread);
+			
+			close(this->fd);
+			n = n->next;
+			list_pop_front(&clients);
+		}
+	});
 	
-	svec_release(&clients);
 	heap_shutdown();
 	server_deinit_utils();
 	

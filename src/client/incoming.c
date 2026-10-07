@@ -27,5 +27,17 @@ void cmd_recv_hello(Client* this)
 		return;
 	}
 	
+	this->hello = true;
+	
 	cmd_send_welcome(this);
+}
+
+void cmd_recv_pong(Client* this)
+{
+	printf("pong from client %d\n", this->fd);
+}
+
+void cmd_recv_create_lobby(Client* this)
+{
+	
 }

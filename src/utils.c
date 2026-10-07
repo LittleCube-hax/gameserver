@@ -129,9 +129,9 @@ void vmem_release(char* addr, size_t size)
 	VirtualFree(addr, 0, MEM_RELEASE);
 }
 
-void thread_start(runtime_thread_func f, server_thread_t* handle)
+void thread_start(runtime_thread_func f, server_thread_t* handle, void* arg)
 {
-	*handle = _beginthreadex(NULL, 0, f, NULL, 0, NULL);
+	*handle = _beginthreadex(NULL, 0, f, arg, 0, NULL);
 }
 
 void thread_exit()
@@ -234,9 +234,9 @@ void vmem_release(char* addr, size_t size)
 	munmap(addr, size);
 }
 
-void thread_start(runtime_thread_func f, server_thread_t* handle)
+void thread_start(runtime_thread_func f, server_thread_t* handle, void* arg)
 {
-	pthread_create(handle, NULL, (void* (*)(void*)) f, NULL);
+	pthread_create(handle, NULL, (void* (*)(void*)) f, arg);
 }
 
 void thread_exit()

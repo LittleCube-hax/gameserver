@@ -39,15 +39,17 @@
 
 typedef struct
 {
+	server_thread_t thread;
+	
 	int retries;
 	int read;
 	int bytes_read;
 	bool disconnected;
 	
+	u32 ip;
 	int ping;
 	
 	int fd;
-	server_socket_t sock;
 	
 	bool hello;
 } Client;
@@ -56,11 +58,14 @@ typedef enum
 {
 	COMMAND_HELLO = 1,
 	COMMAND_WELCOME,
+	COMMAND_PING,
+	COMMAND_PONG,
+	COMMAND_CREATE_LOBBY,
 } Command;
 
 int client_recv(Client* this, void* out, size_t size);
 int client_send(Client* this, void* in, size_t size);
 
-void client_init(Client* this);
+void client_init(Client* this, server_socket_t* sock);
 void client_handle(Client* this);
 void client_disconnect(Client* this, const char* reason);

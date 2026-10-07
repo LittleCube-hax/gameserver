@@ -21,6 +21,7 @@ set(SOURCES
     ${PROJECT_SOURCE_DIR}/src/config.c
     ${PROJECT_SOURCE_DIR}/src/heap.c
     ${PROJECT_SOURCE_DIR}/src/swap_vector.c
+    ${PROJECT_SOURCE_DIR}/src/list.c
     ${PROJECT_SOURCE_DIR}/src/utils.c
     
     ${PROJECT_SOURCE_DIR}/lib/o1heap/o1heap/o1heap.c

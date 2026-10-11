@@ -5,10 +5,13 @@
 #include <common.h>
 #include <utils.h>
 
-#define CLIENT_READ(this, out, type) \
+#define CLIENT_READ(this, code) LOCK_READ(this->lock, code)
+#define CLIENT_WRITE(this, code) LOCK_WRITE(this->lock, code)
+
+#define CLIENT_RECV(this, out, type) \
 	client_recv(this, out, sizeof(type))
 
-#define CLIENT_READ_BLOCK(this, out, type, total_retries) \
+#define CLIENT_RECV_BLOCK(this, out, type, total_retries) \
 	this->bytes_read = 0; \
 	for (this->retries = 0; this->retries < total_retries; this->retries += 1) \
 	{ \
@@ -34,12 +37,17 @@
 		return; \
 	}
 
-#define CLIENT_WRITE(this, in, type) \
+#define CLIENT_SEND(this, in, type) \
 	client_send(this, in, sizeof(type))
 
-typedef struct
+typedef struct Lobby Lobby;
+
+struct Client
 {
+	server_rwlock_t lock;
 	server_thread_t thread;
+	
+	Lobby* current_lobby;
 	
 	int retries;
 	int read;
@@ -52,7 +60,9 @@ typedef struct
 	int fd;
 	
 	bool hello;
-} Client;
+};
+
+typedef struct Client Client;
 
 typedef enum
 {
@@ -61,6 +71,7 @@ typedef enum
 	COMMAND_PING,
 	COMMAND_PONG,
 	COMMAND_CREATE_LOBBY,
+	COMMAND_CREATE_LOBBY_STATUS,
 } Command;
 
 int client_recv(Client* this, void* out, size_t size);

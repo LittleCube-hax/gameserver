@@ -10,6 +10,9 @@
 	code \
 	rwlock_unlock_write(&lock);
 
+#define UNREAD(lock) rwlock_unlock_read(&lock)
+#define UNWRITE(lock) rwlock_unlock_write(&lock)
+
 #if defined(_MSC_VER)
 // Microsoft
 

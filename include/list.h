@@ -4,26 +4,28 @@
 
 #include <client.h>
 
+#define HEAD ((Node*) l->head)
+#define TAIL ((Node*) l->tail)
+
 typedef struct Node Node;
 
 struct Node
 {
-	Client client;
-	int v;
-	Node* next;
-	Node* prev;
+	void* next;
+	void* prev;
 };
 
 typedef struct
 {
-	Node* head;
-	Node* tail;
+	void* head;
+	void* tail;
 	
 	size_t length;
+	size_t struct_size;
 } List;
 
-void list_init(List* l);
+void list_init(List* l, size_t struct_size);
 void list_bump_front(List* l);
 void list_bump_back(List* l);
 void list_pop_front(List* l);
-void list_remove(List* l, Node* n);
+void list_remove(List* l, void* n);

@@ -4,3 +4,4 @@
 
 void cmd_send_welcome(Client* this);
 void cmd_send_ping(Client* this);
+void cmd_send_create_lobby_status(Client* this, int status);

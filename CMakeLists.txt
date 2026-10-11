@@ -18,6 +18,7 @@ set(SOURCES
     ${PROJECT_SOURCE_DIR}/src/client/client.c
     ${PROJECT_SOURCE_DIR}/src/client/incoming.c
     ${PROJECT_SOURCE_DIR}/src/client/outgoing.c
+    ${PROJECT_SOURCE_DIR}/src/lobby.c
     ${PROJECT_SOURCE_DIR}/src/config.c
     ${PROJECT_SOURCE_DIR}/src/heap.c
     ${PROJECT_SOURCE_DIR}/src/swap_vector.c

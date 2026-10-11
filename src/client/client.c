@@ -2,10 +2,13 @@
 #include <fcntl.h>
 
 #include <common.h>
-#include <client.h>
+#include <main.h>
 #include <incoming.h>
 #include <outgoing.h>
+#include <list.h>
 #include <utils.h>
+
+#include <client.h>
 
 int client_recv(Client* this, void* out, size_t size)
 {
@@ -19,6 +22,10 @@ int client_send(Client* this, void* in, size_t size)
 
 void client_init(Client* this, server_socket_t* sock)
 {
+	rwlock_init(&this->lock);
+	
+	this->current_lobby = NULL;
+	
 	this->disconnected = false;
 	this->hello = false;
 	
@@ -32,24 +39,28 @@ void client_init(Client* this, server_socket_t* sock)
 void client_handle(Client* this)
 {
 	u16 cmd;
-	int read = CLIENT_READ(this, &cmd, u16);
 	
-	if (read == 0)
+	CLIENT_WRITE(this,
 	{
-		client_disconnect(this, "client connection ended");
-		return;
-	}
-	
-	else if (errno != EAGAIN && errno != EWOULDBLOCK && read < 0)
-	{
-		client_disconnect(this, "client connection closed abruptly");
-		return;
-	}
-	
-	else if (read < 0)
-	{
-		return;
-	}
+		int read = CLIENT_RECV(this, &cmd, u16);
+		
+		if (read == 0)
+		{
+			client_disconnect(this, "client connection ended");
+			return;
+		}
+		
+		else if (errno != EAGAIN && errno != EWOULDBLOCK && read < 0)
+		{
+			client_disconnect(this, "client connection closed abruptly");
+			return;
+		}
+		
+		else if (read < 0)
+		{
+			return;
+		}
+	});
 	
 	switch (cmd)
 	{

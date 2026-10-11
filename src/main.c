@@ -15,9 +15,12 @@
 #include <config.h>
 #include <client.h>
 #include <outgoing.h>
+#include <lobby.h>
 #include <heap.h>
 #include <list.h>
 #include <utils.h>
+
+#include <main.h>
 
 #define USE_DEFAULT 0
 
@@ -30,33 +33,42 @@ int sfd;
 List clients;
 server_rwlock_t clients_lock;
 
+Lobby welcome_lobby;
+List lobbies;
+server_rwlock_t lobbies_lock;
+
 void sig_q(int sig)
 {
 	quit = 1;
-	close(sfd);
 }
 
-DECLARE_RUNTIME_THREAD_FUNC(client_func)
+DECLARE_RUNTIME_THREAD_FUNC(welcome_func)
 {
-	Node* n = (Node*) ctx;
-	Client* this = &n->client;
-	
 	while (!quit)
 	{
-		if (this->disconnected)
-		{
-			break;
-		}
-		
-		client_handle(this);
-		
+		lobby_update(&welcome_lobby);
 		server_sleep(0);
 	}
 	
-	LOCK_WRITE(clients_lock,
+	thread_exit();
+	
+	return NULL;
+}
+
+DECLARE_RUNTIME_THREAD_FUNC(lobby_func)
+{
+	LobbyNode* n = (LobbyNode*) ctx;
+	Lobby* this = &n->lobby;
+	
+	while (!quit)
 	{
-		close(this->fd);
-		list_remove(&clients, n);
+		lobby_update(this);
+		server_sleep(0);
+	}
+	
+	LOCK_WRITE(lobbies_lock,
+	{
+		list_remove(&lobbies, n);
 	});
 	
 	thread_exit();
@@ -80,14 +92,13 @@ DECLARE_RUNTIME_THREAD_FUNC(listen_func)
 			LOCK_WRITE(clients_lock,
 			{
 				list_bump_back(&clients);
-				Node* n = clients.tail;
+				ClientNode* n = clients.tail;
 				Client* top = &n->client;
 				
 				top->fd = next_fd;
 				client_init(top, &next_client);
 				
-				server_thread_t client_thread;
-				thread_start(client_func, &client_thread, n);
+				lobby_join(&welcome_lobby, top);
 			});
 		}
 		
@@ -106,7 +117,13 @@ int main(int argc, char** argv)
 	server_init_utils();
 	heap_init(HEAP_SIZE);
 	
-	list_init(&clients);
+	list_init(&clients, sizeof(ClientNode));
+	
+	lobby_init(&welcome_lobby, 128);
+	server_thread_t welcome_thread;
+	thread_start(welcome_func, &welcome_thread, NULL);
+	
+	list_init(&lobbies, sizeof(Lobby));
 	
 	if (!config_read("config.toml", &config))
 	{
@@ -147,6 +164,8 @@ int main(int argc, char** argv)
 	}
 	
 	signal(SIGINT, sig_q);
+	signal(SIGTERM, sig_q);
+	signal(SIGQUIT, sig_q);
 	
 	server_thread_t listen_thread;
 	thread_start(listen_func, &listen_thread, NULL);
@@ -155,7 +174,7 @@ int main(int argc, char** argv)
 	{
 		LOCK_WRITE(clients_lock,
 		{
-			for (Node* n = clients.head; n != NULL; n = n->next)
+			for (ClientNode* n = clients.head; n != NULL; n = n->node.next)
 			{
 				printf("pinging %d\n", n->client.fd);
 				cmd_send_ping(&n->client);
@@ -171,17 +190,17 @@ join:
 release:
 	LOCK_WRITE(clients_lock,
 	{
-		for (Node* n = clients.head; n != NULL; n = n->next)
+		for (ClientNode* n = clients.head; n != NULL; n = n->node.next)
 		{
 			Client* this = &n->client;
-			printf("closing client %d\n", this->fd);
-			thread_join(&this->thread);
 			
 			close(this->fd);
-			n = n->next;
+			n = n->node.next;
 			list_pop_front(&clients);
 		}
 	});
+	
+	close(sfd);
 	
 	heap_shutdown();
 	server_deinit_utils();

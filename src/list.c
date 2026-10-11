@@ -10,19 +10,20 @@
 
 #define VAL(type, x) *((type*) x)
 
-void list_init(List* l)
+void list_init(List* l, size_t struct_size)
 {
 	l->head = NULL;
 	l->tail = NULL;
 	
 	l->length = 0;
+	l->struct_size = struct_size;
 }
 
 void list_bump_front(List* l)
 {
 	l->length += 1;
 	
-	Node* n = HALLOC(sizeof(Node));
+	Node* n = HALLOC(l->struct_size);
 	
 	if (l->head == NULL)
 	{
@@ -41,7 +42,7 @@ void list_bump_back(List* l)
 {
 	l->length += 1;
 	
-	Node* n = HALLOC(sizeof(Node));
+	Node* n = HALLOC(l->struct_size);
 	n->next = NULL;
 	
 	if (l->head == NULL)
@@ -53,7 +54,7 @@ void list_bump_back(List* l)
 	}
 	
 	n->prev = l->tail;
-	l->tail->next = n;
+	TAIL->next = n;
 	l->tail = n;
 }
 
@@ -75,11 +76,13 @@ void list_pop_front(List* l)
 	}
 	
 	l->head = next;
-	l->head->prev = NULL;
+	HEAD->prev = NULL;
 }
 
-void list_remove(List* l, Node* n)
+void list_remove(List* l, void* node)
 {
+	Node* n = (Node*) node;
+	
 	Node* next = n->next;
 	Node* prev = n->prev;
 	

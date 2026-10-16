@@ -18,6 +18,7 @@ struct Lobby
 	server_rwlock_t lock;
 	
 	SwapVector queued_joins;
+	SwapVector queued_disconnects;
 	List players;
 	Client* leader;
 	size_t max_players;

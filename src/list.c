@@ -5,6 +5,7 @@
 
 #include <common.h>
 #include <heap.h>
+#include <utils.h>
 
 #include <list.h>
 

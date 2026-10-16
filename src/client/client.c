@@ -20,9 +20,11 @@ int client_send(Client* this, void* in, size_t size)
 	return send(this->fd, in, size, 0);
 }
 
-void client_init(Client* this, server_socket_t* sock)
+void client_init(Client* this, ClientNode* node, server_socket_t* sock)
 {
 	rwlock_init(&this->lock);
+	
+	this->node = node;
 	
 	this->current_lobby = NULL;
 	
@@ -74,4 +76,17 @@ void client_disconnect(Client* this, const char* reason)
 {
 	fprintf(stderr, "Disconnecting client %d, %s\n", this->fd, reason);
 	this->disconnected = true;
+}
+
+void client_destroy(Client* this)
+{
+	LOCK_WRITE(clients_lock,
+	{
+		list_remove(&clients, this->node);
+	});
+	
+	CLIENT_WRITE(this,
+	{
+		close(this->fd);
+	});
 }

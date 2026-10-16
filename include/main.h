@@ -4,17 +4,9 @@
 #include <list.h>
 #include <utils.h>
 
-typedef struct
-{
-	Node node;
-	Lobby lobby;
-} LobbyNode;
+extern List clients;
+extern server_rwlock_t clients_lock;
 
-typedef struct
-{
-	Node node;
-	Client client;
-} ClientNode;
-
+extern Lobby welcome_lobby;
 extern List lobbies;
 extern server_rwlock_t lobbies_lock;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <client.h>
+#include <swap_vector.h>
 #include <list.h>
 
 #define LOBBY_READ(this, code) LOCK_READ(this->lock, code)
@@ -15,11 +17,19 @@ struct Lobby
 {
 	server_rwlock_t lock;
 	
+	SwapVector queued_joins;
 	List players;
 	Client* leader;
-	size_t num_players;
 	size_t max_players;
 };
+
+typedef struct Lobby Lobby;
+
+typedef struct
+{
+	Node node;
+	Lobby lobby;
+} LobbyNode;
 
 typedef enum
 {
@@ -34,4 +44,4 @@ void lobby_init(Lobby* this, size_t max_players);
 void lobby_set_leader(Lobby* this, Client* leader);
 bool lobby_join(Lobby* this, Client* player);
 void lobby_update(Lobby* this);
-void lobby_leave(Lobby* this, Client* player);
+void lobby_leave(Lobby* this, ClientPtrNode* player);

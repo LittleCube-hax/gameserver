@@ -1,4 +1,5 @@
 #include <common.h>
+#include <main.h>
 #include <client.h>
 #include <outgoing.h>
 #include <heap.h>
@@ -9,10 +10,10 @@ void lobby_init(Lobby* this, size_t max_players)
 {
 	rwlock_init(&this->lock);
 	
+	SVEC_INIT(&this->queued_joins);
 	list_init(&this->players, sizeof(ClientPtrNode));
 	
 	this->leader = NULL;
-	this->num_players = 0;
 	this->max_players = max_players;
 }
 
@@ -39,17 +40,13 @@ bool lobby_join(Lobby* this, Client* player)
 	
 	LOCK_WRITE(this->lock,
 	{
-		if (this->num_players == this->max_players)
+		if (this->players.length == this->max_players)
 		{
 			UNWRITE(this->lock);
 			return false;
 		}
 		
-		list_bump_back(&this->players);
-		ClientPtrNode* n = this->players.tail;
-		n->client = player;
-		
-		this->num_players += 1;
+		SVEC_PUSH(&this->queued_joins, player);
 	});
 	
 	return true;
@@ -57,15 +54,52 @@ bool lobby_join(Lobby* this, Client* player)
 
 void lobby_update(Lobby* this)
 {
+	LOBBY_WRITE(this,
+	{
+		for (size_t i = 0; i < this->queued_joins.length; ++i)
+		{
+			Client* player = (Client*) this->queued_joins.data[i];
+			
+			list_bump_back(&this->players);
+			ClientPtrNode* n = this->players.tail;
+			n->client = player;
+		}
+	});
 	
+	for (ClientPtrNode* n = this->players.head; n != NULL; n = n->node.next)
+	{
+		Client* player = n->client;
+		
+		client_handle(player);
+		
+		if (player->disconnected)
+		{
+			LOBBY_WRITE(this,
+			{
+				list_remove(&this->players, n);
+			});
+			
+			if (this != &welcome_lobby)
+			{
+				lobby_join(&welcome_lobby, player);
+			}
+			
+			else
+			{
+				client_destroy(player);
+			}
+		}
+	}
 }
 
-void lobby_leave(Lobby* this, Client* player)
+void lobby_leave(Lobby* this, ClientPtrNode* client)
 {
 	LOBBY_WRITE(this,
 	{
-		this->num_players -= 1;
+		list_remove(&this->players, client);
 	});
+	
+	Client* player = client->client;
 	
 	CLIENT_WRITE(player,
 	{

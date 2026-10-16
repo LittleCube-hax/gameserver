@@ -3,6 +3,7 @@
 #include <errno.h>
 
 #include <common.h>
+#include <list.h>
 #include <utils.h>
 
 #define CLIENT_READ(this, code) LOCK_READ(this->lock, code)
@@ -40,10 +41,13 @@
 #define CLIENT_SEND(this, in, type) \
 	client_send(this, in, sizeof(type))
 
+typedef struct ClientNode ClientNode;
 typedef struct Lobby Lobby;
 
 struct Client
 {
+	ClientNode* node;
+	
 	server_rwlock_t lock;
 	server_thread_t thread;
 	
@@ -64,6 +68,12 @@ struct Client
 
 typedef struct Client Client;
 
+struct ClientNode
+{
+	Node node;
+	Client client;
+};
+
 typedef enum
 {
 	COMMAND_HELLO = 1,
@@ -77,6 +87,7 @@ typedef enum
 int client_recv(Client* this, void* out, size_t size);
 int client_send(Client* this, void* in, size_t size);
 
-void client_init(Client* this, server_socket_t* sock);
+void client_init(Client* this, ClientNode* node, server_socket_t* sock);
 void client_handle(Client* this);
 void client_disconnect(Client* this, const char* reason);
+void client_destroy(Client* this);

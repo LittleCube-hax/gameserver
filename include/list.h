@@ -2,18 +2,14 @@
 
 #include <stdint.h>
 
-#include <client.h>
-
 #define HEAD ((Node*) l->head)
 #define TAIL ((Node*) l->tail)
 
-typedef struct Node Node;
-
-struct Node
+typedef struct
 {
 	void* next;
 	void* prev;
-};
+} Node;
 
 typedef struct
 {

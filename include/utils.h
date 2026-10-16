@@ -23,6 +23,7 @@ typedef unsigned int (*runtime_thread_func)(void* arg);
 #elif defined(__GNUC__)
 // GCC
 
+#include <unistd.h>
 #include <sys/socket.h>
 
 #define LIKELY(exp) __builtin_expect(exp, true)

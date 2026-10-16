@@ -96,7 +96,7 @@ DECLARE_RUNTIME_THREAD_FUNC(listen_func)
 				Client* top = &n->client;
 				
 				top->fd = next_fd;
-				client_init(top, &next_client);
+				client_init(top, n, &next_client);
 				
 				lobby_join(&welcome_lobby, top);
 			});

@@ -184,7 +184,7 @@ int main(int argc, char** argv)
 				}
 				
 				u64 now = get_elapsed_ns();
-				if (now - client->last_pong >= 10000)
+				if (now - client->last_pong >= 10000000000)
 				{
 					client_disconnect(client, "ping longer than 10 seconds");
 					

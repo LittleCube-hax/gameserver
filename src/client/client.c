@@ -45,28 +45,29 @@ void client_init(Client* this, ClientNode* node, server_socket_t* sock)
 void client_handle(Client* this)
 {
 	u16 cmd;
+	int read;
 	
 	CLIENT_WRITE(this,
 	{
-		int read = CLIENT_RECV(this, &cmd, u16);
-		
-		if (read == 0)
-		{
-			client_disconnect(this, "client connection ended");
-			return;
-		}
-		
-		else if (errno != EAGAIN && errno != EWOULDBLOCK && read < 0)
-		{
-			client_disconnect(this, "client connection closed abruptly");
-			return;
-		}
-		
-		else if (read < 0)
-		{
-			return;
-		}
+		read = CLIENT_RECV(this, &cmd, u16);
 	});
+		
+	if (read == 0)
+	{
+		client_disconnect(this, "client connection ended");
+		return;
+	}
+	
+	else if (errno != EAGAIN && errno != EWOULDBLOCK && read < 0)
+	{
+		client_disconnect(this, "client connection closed abruptly");
+		return;
+	}
+	
+	else if (read < 0)
+	{
+		return;
+	}
 	
 	switch (cmd)
 	{
@@ -79,12 +80,11 @@ void client_handle(Client* this)
 void client_disconnect(Client* this, const char* reason)
 {
 	Lobby* current_lobby = this->current_lobby;
-	lobby_leave(current_lobby, this);
-	
-	LOGE("dc lol\n");
 	
 	if (current_lobby != &welcome_lobby)
 	{
+		lobby_leave(current_lobby, this);
+		
 		fprintf(stderr, "Kicking client %d to welcome lobby, %s\n", this->fd, reason);
 		lobby_join(&welcome_lobby, this);
 	}

@@ -106,19 +106,17 @@ void lobby_update(Lobby* this)
 
 void lobby_leave(Lobby* this, Client* player)
 {
-	LOGE("ll\n");
 	ClientPtrNode* n = player->lobby_node;
 	
 	LOBBY_WRITE(this,
 	{
 		list_remove(&this->players, n);
 	});
-	LOGE("removed\n");
+	
 	CLIENT_WRITE(player,
 	{
 		player->current_lobby = NULL;
 	});
-	LOGE("unlocked\n");
 }
 
 void lobby_destroy(Lobby* this)

@@ -10,7 +10,9 @@
 	code \
 	rwlock_unlock_write(&lock);
 
+#define READ(lock) rwlock_lock_read(&lock)
 #define UNREAD(lock) rwlock_unlock_read(&lock)
+#define WRITE(lock) rwlock_lock_write(&lock)
 #define UNWRITE(lock) rwlock_unlock_write(&lock)
 
 #if defined(_MSC_VER)

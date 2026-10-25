@@ -64,6 +64,7 @@ void lobby_update(Lobby* this)
 			list_bump_back(&this->players);
 			ClientPtrNode* n = this->players.tail;
 			n->client = player;
+			player->lobby_node = n;
 		}
 		
 		SVEC_CLEAR(&this->queued_joins);
@@ -103,19 +104,21 @@ void lobby_update(Lobby* this)
 	});
 }
 
-void lobby_leave(Lobby* this, ClientPtrNode* client)
+void lobby_leave(Lobby* this, Client* player)
 {
+	LOGE("ll\n");
+	ClientPtrNode* n = player->lobby_node;
+	
 	LOBBY_WRITE(this,
 	{
-		list_remove(&this->players, client);
+		list_remove(&this->players, n);
 	});
-	
-	Client* player = client->client;
-	
+	LOGE("removed\n");
 	CLIENT_WRITE(player,
 	{
 		player->current_lobby = NULL;
 	});
+	LOGE("unlocked\n");
 }
 
 void lobby_destroy(Lobby* this)

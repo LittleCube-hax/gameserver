@@ -42,16 +42,18 @@
 	client_send(this, in, sizeof(type))
 
 typedef struct ClientNode ClientNode;
+typedef struct ClientPtrNode ClientPtrNode;
 typedef struct Lobby Lobby;
 
 struct Client
 {
-	ClientNode* node;
-	
 	server_rwlock_t lock;
 	server_thread_t thread;
 	
+	ClientNode* node;
+	
 	Lobby* current_lobby;
+	ClientPtrNode* lobby_node;
 	
 	int retries;
 	int read;
@@ -60,6 +62,7 @@ struct Client
 	
 	u32 ip;
 	int ping;
+	u64 last_pong;
 	
 	int fd;
 	

@@ -176,8 +176,27 @@ int main(int argc, char** argv)
 		{
 			for (ClientNode* n = clients.head; n != NULL; n = n->node.next)
 			{
+				Client* client = &n->client;
+				
+				if (client->disconnected)
+				{
+					continue;
+				}
+				
+				u64 now = get_elapsed_ns();
+				if (now - client->last_pong >= 10000)
+				{
+					fprintf(stderr, "bad ping\n");
+					
+					UNWRITE(clients_lock);
+					client_disconnect(client, "ping longer than 10 seconds");
+					WRITE(clients_lock);
+					
+					continue;
+				}
+				
 				printf("pinging %d\n", n->client.fd);
-				cmd_send_ping(&n->client);
+				cmd_send_ping(client);
 			}
 		});
 		

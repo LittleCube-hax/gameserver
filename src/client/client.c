@@ -27,8 +27,12 @@ void client_init(Client* this, ClientNode* node, server_socket_t* sock)
 	this->node = node;
 	
 	this->current_lobby = NULL;
+	this->lobby_node = NULL;
 	
 	this->disconnected = false;
+	
+	this->last_pong = get_elapsed_ns();
+	
 	this->hello = false;
 	
 	int flags = fcntl(this->fd, F_GETFL, 0);
@@ -74,8 +78,26 @@ void client_handle(Client* this)
 
 void client_disconnect(Client* this, const char* reason)
 {
-	fprintf(stderr, "Disconnecting client %d, %s\n", this->fd, reason);
-	this->disconnected = true;
+	Lobby* current_lobby = this->current_lobby;
+	lobby_leave(current_lobby, this);
+	
+	LOGE("dc lol\n");
+	
+	if (current_lobby != &welcome_lobby)
+	{
+		fprintf(stderr, "Kicking client %d to welcome lobby, %s\n", this->fd, reason);
+		lobby_join(&welcome_lobby, this);
+	}
+	
+	else
+	{
+		fprintf(stderr, "Disconnecting client %d, %s\n", this->fd, reason);
+		
+		CLIENT_WRITE(this,
+		{
+			this->disconnected = true;
+		});
+	}
 }
 
 void client_destroy(Client* this)

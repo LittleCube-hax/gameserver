@@ -6,6 +6,12 @@
 
 void cmd_recv_hello(Client* this)
 {
+	if (this->hello)
+	{
+		client_disconnect(this, "already sent hello");
+		return;
+	}
+	
 	u64 now = get_elapsed_ns();
 	
 	u32 magic;
@@ -37,6 +43,7 @@ void cmd_recv_hello(Client* this)
 
 void cmd_recv_pong(Client* this)
 {
+	this->last_pong = get_elapsed_ns();
 	printf("pong from client %d\n", this->fd);
 }
 

@@ -46,6 +46,10 @@ DECLARE_RUNTIME_THREAD_FUNC(welcome_func)
 {
 	while (!quit)
 	{
+		if (welcome_lobby.players.length > 1)
+		{
+			fprintf(stderr, "why are there %zu players in welcome LOL\n", welcome_lobby.players.length);
+		}
 		lobby_update(&welcome_lobby);
 		server_sleep(0);
 	}
@@ -60,11 +64,13 @@ DECLARE_RUNTIME_THREAD_FUNC(lobby_func)
 	LobbyNode* n = (LobbyNode*) ctx;
 	Lobby* this = &n->lobby;
 	
-	while (!quit)
+	while (!quit && !this->stop)
 	{
 		lobby_update(this);
 		server_sleep(0);
 	}
+	
+	fprintf(stderr, "l length: %zu, head: %p, n: %p\n", lobbies.length, lobbies.head, n);
 	
 	LOCK_WRITE(lobbies_lock,
 	{
@@ -120,8 +126,7 @@ int main(int argc, char** argv)
 	list_init(&clients, sizeof(ClientNode));
 	
 	lobby_init(&welcome_lobby, 128);
-	server_thread_t welcome_thread;
-	thread_start(welcome_func, &welcome_thread, NULL);
+	thread_start(welcome_func, &welcome_lobby.thread, NULL);
 	
 	list_init(&lobbies, sizeof(Lobby));
 	
@@ -136,6 +141,9 @@ int main(int argc, char** argv)
 	{
 		LOGEQ("couldn't open socket\n");
 	}
+	
+	int reuse = 1;
+	setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 	
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -186,6 +194,8 @@ int main(int argc, char** argv)
 				u64 now = get_elapsed_ns();
 				if (now - client->last_pong >= 10000000000)
 				{
+					fprintf(stderr, "bad ping\n");
+					
 					client_disconnect(client, "ping longer than 10 seconds");
 					
 					continue;
@@ -195,6 +205,8 @@ int main(int argc, char** argv)
 				cmd_send_ping(client);
 			}
 		});
+		
+		fprintf(stderr, "length: %zu\n", lobbies.length);
 		
 		server_sleep(1000);
 	}

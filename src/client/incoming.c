@@ -49,7 +49,7 @@ void cmd_recv_pong(Client* this)
 
 void cmd_recv_create_lobby(Client* this)
 {
-	if (this->current_lobby != NULL)
+	if (this->current_lobby != NULL && this->current_lobby != &welcome_lobby)
 	{
 		cmd_send_create_lobby_status(this, CREATE_LOBBY_FAILURE_IN_LOBBY);
 	}
@@ -59,6 +59,7 @@ void cmd_recv_create_lobby(Client* this)
 		for (LobbyNode* n = lobbies.head; n != NULL; n = n->node.next)
 		{
 			Lobby* l = &n->lobby;
+			fprintf(stderr, "l: %p, leader: %p, this: %p, length: %zu\n", l, l->leader, this, lobbies.length);
 			
 			if (l->leader == this)
 			{
@@ -70,11 +71,16 @@ void cmd_recv_create_lobby(Client* this)
 		
 		list_bump_back(&lobbies);
 		
-		Lobby* lobby = lobbies.tail;
+		LobbyNode* n = lobbies.tail;
+		Lobby* lobby = &n->lobby;
 		lobby_init(lobby, 16);
-		lobby_set_leader(lobby, this);
+		
 		lobby_join(lobby, this);
+		lobby_set_leader(lobby, this);
+		fprintf(stderr, "created lobby with leader %p\n", lobby->leader);
 		
 		cmd_send_create_lobby_status(this, CREATE_LOBBY_SUCCESS);
+		
+		thread_start(lobby_func, &lobby->thread, n);
 	});
 }

@@ -48,7 +48,6 @@ typedef struct Lobby Lobby;
 struct Client
 {
 	server_rwlock_t lock;
-	server_thread_t thread;
 	
 	ClientNode* node;
 	
@@ -93,4 +92,5 @@ int client_send(Client* this, void* in, size_t size);
 void client_init(Client* this, ClientNode* node, server_socket_t* sock);
 void client_handle(Client* this);
 void client_disconnect(Client* this, const char* reason);
+void client_reconnect(Client* this);
 void client_destroy(Client* this);

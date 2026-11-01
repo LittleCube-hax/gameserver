@@ -51,7 +51,9 @@ void client_handle(Client* this)
 	{
 		read = CLIENT_RECV(this, &cmd, u16);
 	});
-		
+	
+	fprintf(stderr, "read: %d\n", read);
+	
 	if (read == 0)
 	{
 		client_disconnect(this, "client connection ended");
@@ -79,25 +81,20 @@ void client_handle(Client* this)
 
 void client_disconnect(Client* this, const char* reason)
 {
-	Lobby* current_lobby = this->current_lobby;
+	fprintf(stderr, "Disconnecting client %d, %s\n", this->fd, reason);
 	
-	if (current_lobby != &welcome_lobby)
+	CLIENT_WRITE(this,
 	{
-		lobby_leave(current_lobby, this);
-		
-		fprintf(stderr, "Kicking client %d to welcome lobby, %s\n", this->fd, reason);
-		lobby_join(&welcome_lobby, this);
-	}
-	
-	else
+		this->disconnected = true;
+	});
+}
+
+void client_reconnect(Client* this)
+{
+	CLIENT_WRITE(this,
 	{
-		fprintf(stderr, "Disconnecting client %d, %s\n", this->fd, reason);
-		
-		CLIENT_WRITE(this,
-		{
-			this->disconnected = true;
-		});
-	}
+		this->disconnected = false;
+	});
 }
 
 void client_destroy(Client* this)

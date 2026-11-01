@@ -10,3 +10,5 @@ extern server_rwlock_t clients_lock;
 extern Lobby welcome_lobby;
 extern List lobbies;
 extern server_rwlock_t lobbies_lock;
+
+DECLARE_RUNTIME_THREAD_FUNC(lobby_func);

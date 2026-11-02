@@ -107,7 +107,8 @@ void list_remove(List* l, void* node)
 		next->prev = prev;
 	}
 	
-	FREE(n);
+	// TODO: actually free memory LOL
+	//~ FREE(n);
 	
 	l->length -= 1;
 	

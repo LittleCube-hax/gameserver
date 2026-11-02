@@ -52,8 +52,6 @@ void client_handle(Client* this)
 		read = CLIENT_RECV(this, &cmd, u16);
 	});
 	
-	fprintf(stderr, "read: %d\n", read);
-	
 	if (read == 0)
 	{
 		client_disconnect(this, "client connection ended");
@@ -70,6 +68,8 @@ void client_handle(Client* this)
 	{
 		return;
 	}
+	
+	fprintf(stderr, "handle %p\n", this);
 	
 	switch (cmd)
 	{

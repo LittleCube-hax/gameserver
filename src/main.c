@@ -46,10 +46,6 @@ DECLARE_RUNTIME_THREAD_FUNC(welcome_func)
 {
 	while (!quit)
 	{
-		if (welcome_lobby.players.length > 1)
-		{
-			fprintf(stderr, "why are there %zu players in welcome LOL\n", welcome_lobby.players.length);
-		}
 		lobby_update(&welcome_lobby);
 		server_sleep(0);
 	}

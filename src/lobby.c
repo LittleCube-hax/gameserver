@@ -183,5 +183,5 @@ void lobby_destroy(Lobby* this)
 	SVEC_RELEASE(&this->queued_joins);
 	SVEC_RELEASE(&this->queued_disconnects);
 	
-	// TODO: release list
+	list_release(&this->players);
 }

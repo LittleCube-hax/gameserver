@@ -107,13 +107,24 @@ void list_remove(List* l, void* node)
 		next->prev = prev;
 	}
 	
-	// TODO: actually free memory LOL
-	//~ FREE(n);
+	FREE(n);
 	
 	l->length -= 1;
 	
 	if (l->length == 0)
 	{
 		l->head = l->tail = NULL;
+	}
+}
+
+void list_release(List* l)
+{
+	Node* n = l->head;
+	
+	while (n != NULL)
+	{
+		Node* next = n->next;
+		FREE(n);
+		n = next;
 	}
 }

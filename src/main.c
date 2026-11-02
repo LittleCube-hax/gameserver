@@ -73,6 +73,8 @@ DECLARE_RUNTIME_THREAD_FUNC(lobby_func)
 		list_remove(&lobbies, n);
 	});
 	
+	lobby_destroy(this);
+	
 	thread_exit();
 	
 	return NULL;
@@ -124,7 +126,7 @@ int main(int argc, char** argv)
 	lobby_init(&welcome_lobby, 128);
 	thread_start(welcome_func, &welcome_lobby.thread, NULL);
 	
-	list_init(&lobbies, sizeof(Lobby));
+	list_init(&lobbies, sizeof(LobbyNode));
 	
 	if (!config_read("config.toml", &config))
 	{

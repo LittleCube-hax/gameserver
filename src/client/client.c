@@ -106,6 +106,7 @@ void client_destroy(Client* this)
 	
 	CLIENT_WRITE(this,
 	{
+		rwlock_destroy(&this->lock);
 		close(this->fd);
 	});
 }

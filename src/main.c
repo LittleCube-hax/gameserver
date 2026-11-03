@@ -66,8 +66,6 @@ DECLARE_RUNTIME_THREAD_FUNC(lobby_func)
 		server_sleep(0);
 	}
 	
-	fprintf(stderr, "l length: %zu, head: %p, n: %p\n", lobbies.length, lobbies.head, n);
-	
 	LOCK_WRITE(lobbies_lock,
 	{
 		list_remove(&lobbies, n);
@@ -192,10 +190,7 @@ int main(int argc, char** argv)
 				u64 now = get_elapsed_ns();
 				if (now - client->last_pong >= 10000000000)
 				{
-					fprintf(stderr, "bad ping\n");
-					
 					client_disconnect(client, "ping longer than 10 seconds");
-					
 					continue;
 				}
 				
@@ -203,8 +198,6 @@ int main(int argc, char** argv)
 				cmd_send_ping(client);
 			}
 		});
-		
-		fprintf(stderr, "length: %zu\n", lobbies.length);
 		
 		server_sleep(1000);
 	}

@@ -61,7 +61,6 @@ bool lobby_join(Lobby* this, Client* player)
 	
 	CLIENT_WRITE(player,
 	{
-		fprintf(stderr, "setting %p's lobby to %p\n", player, this);
 		player->current_lobby = this;
 	});
 	
@@ -75,7 +74,6 @@ void lobby_update(Lobby* this)
 		for (size_t i = 0; i < this->queued_joins.length; ++i)
 		{
 			Client* player = (Client*) this->queued_joins.data[i];
-			fprintf(stderr, "player %p is joining a lobby\n", player);
 			
 			list_bump_back(&this->players);
 			ClientPtrNode* n = this->players.tail;
@@ -89,7 +87,6 @@ void lobby_update(Lobby* this)
 			
 			if (player->disconnected)
 			{
-				fprintf(stderr, "pushing client %p\n", player);
 				SVEC_PUSH(&this->queued_disconnects, n);
 				
 				continue;
@@ -107,8 +104,6 @@ void lobby_update(Lobby* this)
 	{
 		ClientPtrNode* n = (ClientPtrNode*) this->queued_disconnects.data[i];
 		Client* player = n->client;
-		
-		fprintf(stderr, "dcing %p (from %p)\n", player, this);
 		
 		if (this->leader == player)
 		{
@@ -131,8 +126,6 @@ void lobby_update(Lobby* this)
 			list_remove(&this->players, n);
 		});
 		
-		fprintf(stderr, "setting %p's lobby to NULL\n", player);
-		
 		CLIENT_WRITE(player,
 		{
 			player->current_lobby = NULL;
@@ -140,7 +133,6 @@ void lobby_update(Lobby* this)
 		
 		if (this != &welcome_lobby)
 		{
-			LOGE("rejoin welcome\n");
 			client_reconnect(player);
 			lobby_join(&welcome_lobby, player);
 		}
@@ -165,7 +157,6 @@ void lobby_leave(Lobby* this, Client* player)
 	
 	CLIENT_WRITE(player,
 	{
-		fprintf(stderr, "setting %p's lobby to NULL\n", player);
 		player->current_lobby = NULL;
 	});
 }

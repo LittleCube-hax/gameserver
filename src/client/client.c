@@ -69,8 +69,6 @@ void client_handle(Client* this)
 		return;
 	}
 	
-	fprintf(stderr, "handle %p\n", this);
-	
 	switch (cmd)
 	{
 		case COMMAND_HELLO: cmd_recv_hello(this); break;

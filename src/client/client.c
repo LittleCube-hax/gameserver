@@ -74,6 +74,7 @@ void client_handle(Client* this)
 		case COMMAND_HELLO: cmd_recv_hello(this); break;
 		case COMMAND_PONG: cmd_recv_pong(this); break;
 		case COMMAND_CREATE_LOBBY: cmd_recv_create_lobby(this); break;
+		case COMMAND_LIST_LOBBIES: cmd_recv_list_lobbies(this); break;
 	}
 }
 

@@ -88,3 +88,24 @@ void cmd_recv_create_lobby(Client* this)
 		thread_start(lobby_func, &lobby->thread, n);
 	});
 }
+
+void cmd_recv_list_lobbies(Client* this)
+{
+	SwapVector lobby_ids;
+	SVEC_SIZED_INIT(&lobby_ids, sizeof(u16));
+	
+	LOCK_READ(lobbies_lock,
+	{
+		for (LobbyNode* n = lobbies.head; n != NULL; n = n->node.next)
+		{
+			Lobby* l = &n->lobby;
+			
+			SVEC_BUMP(&lobby_ids);
+			*SVEC_GET_TOP(&lobby_ids, u16) = l->id;
+		}
+	});
+	
+	cmd_send_list_lobbies(this, lobby_ids.length, (u16*) lobby_ids.arena);
+	
+	SVEC_RELEASE(&lobby_ids);
+}

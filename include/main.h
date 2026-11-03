@@ -4,6 +4,8 @@
 #include <list.h>
 #include <utils.h>
 
+extern u16 next_lobby;
+
 extern List clients;
 extern server_rwlock_t clients_lock;
 

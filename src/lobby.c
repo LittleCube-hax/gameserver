@@ -10,6 +10,9 @@ void lobby_init(Lobby* this, size_t max_players)
 {
 	rwlock_init(&this->lock);
 	
+	this->id = next_lobby;
+	next_lobby += 1;
+	
 	this->stop = false;
 	
 	SVEC_INIT(&this->queued_joins);

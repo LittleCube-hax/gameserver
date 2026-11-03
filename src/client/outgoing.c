@@ -30,3 +30,16 @@ void cmd_send_create_lobby_status(Client* this, int status)
 		CLIENT_SEND(this, &status, int);
 	});
 }
+
+void cmd_send_list_lobbies(Client* this, u16 num_lobbies, u16* lobby_ids)
+{
+	u16 cmd = COMMAND_LIST_LOBBIES;
+	
+	CLIENT_WRITE(this,
+	{
+		CLIENT_SEND(this, &cmd, u16);
+		CLIENT_SEND(this, &num_lobbies, u16);
+		
+		client_send(this, lobby_ids, sizeof(u16)*num_lobbies);
+	});
+}

@@ -33,6 +33,8 @@ int sfd;
 List clients;
 server_rwlock_t clients_lock;
 
+u16 next_lobby;
+
 Lobby welcome_lobby;
 List lobbies;
 server_rwlock_t lobbies_lock;
@@ -118,6 +120,8 @@ int main(int argc, char** argv)
 	
 	server_init_utils();
 	heap_init(HEAP_SIZE);
+	
+	next_lobby = 0;
 	
 	list_init(&clients, sizeof(ClientNode));
 	

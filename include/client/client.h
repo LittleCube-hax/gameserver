@@ -84,6 +84,7 @@ typedef enum
 	COMMAND_PONG,
 	COMMAND_CREATE_LOBBY,
 	COMMAND_CREATE_LOBBY_STATUS,
+	COMMAND_LIST_LOBBIES,
 } Command;
 
 int client_recv(Client* this, void* out, size_t size);

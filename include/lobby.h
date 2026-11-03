@@ -20,6 +20,8 @@ struct Lobby
 	server_rwlock_t lock;
 	server_thread_t thread;
 	
+	u16 id;
+	
 	bool stop;
 	
 	SwapVector queued_joins;

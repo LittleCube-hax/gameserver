@@ -116,3 +116,15 @@ void list_remove(List* l, void* node)
 		l->head = l->tail = NULL;
 	}
 }
+
+void list_release(List* l)
+{
+	Node* n = l->head;
+	
+	while (n != NULL)
+	{
+		Node* next = n->next;
+		FREE(n);
+		n = next;
+	}
+}

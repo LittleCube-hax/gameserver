@@ -6,37 +6,43 @@
 
 void cmd_recv_hello(Client* this)
 {
-	if (this->hello)
+	CLIENT_WRITE(this,
 	{
-		client_disconnect(this, "already sent hello");
-		return;
-	}
-	
-	u64 now = get_elapsed_ns();
-	
-	u32 magic;
-	CLIENT_RECV_BLOCK(this, &magic, u32, 1000);
-	
-	if (magic != 34769420)
-	{
-		client_disconnect(this, "bad magic");
-		return;
-	}
-	
-	u64 timestamp;
-	CLIENT_RECV_BLOCK(this, &timestamp, u64, 1000);
-	
-	this->ping = (int) (now - timestamp);
-	
-	const u64 ten_seconds_ns = 10*1000*1000*1000ULL;
-	
-	if (!(timestamp > now - ten_seconds_ns && timestamp < now + ten_seconds_ns))
-	{
-		client_disconnect(this, "bad timestamp");
-		return;
-	}
-	
-	this->hello = true;
+		if (this->hello)
+		{
+			UNWRITE(this->lock);
+			client_disconnect(this, "already sent hello");
+			return;
+		}
+		
+		u64 now = get_elapsed_ns();
+		
+		u32 magic;
+		CLIENT_RECV_BLOCK(this, &magic, u32, 1000);
+		
+		u64 timestamp;
+		CLIENT_RECV_BLOCK(this, &timestamp, u64, 1000);
+		
+		this->ping = (int) (now - timestamp);
+		
+		const u64 ten_seconds_ns = 10*1000*1000*1000ULL;
+		
+		if (magic != 34769420)
+		{
+			UNWRITE(this->lock);
+			client_disconnect(this, "bad magic");
+			return;
+		}
+		
+		if (!(timestamp > now - ten_seconds_ns && timestamp < now + ten_seconds_ns))
+		{
+			UNWRITE(this->lock);
+			client_disconnect(this, "bad timestamp");
+			return;
+		}
+		
+		this->hello = true;
+	});
 	
 	cmd_send_welcome(this);
 }
@@ -49,7 +55,7 @@ void cmd_recv_pong(Client* this)
 
 void cmd_recv_create_lobby(Client* this)
 {
-	if (this->current_lobby != NULL)
+	if (this->current_lobby != NULL && this->current_lobby != &welcome_lobby)
 	{
 		cmd_send_create_lobby_status(this, CREATE_LOBBY_FAILURE_IN_LOBBY);
 	}
@@ -70,11 +76,15 @@ void cmd_recv_create_lobby(Client* this)
 		
 		list_bump_back(&lobbies);
 		
-		Lobby* lobby = lobbies.tail;
+		LobbyNode* n = lobbies.tail;
+		Lobby* lobby = &n->lobby;
 		lobby_init(lobby, 16);
-		lobby_set_leader(lobby, this);
+		
 		lobby_join(lobby, this);
+		lobby_set_leader(lobby, this);
 		
 		cmd_send_create_lobby_status(this, CREATE_LOBBY_SUCCESS);
+		
+		thread_start(lobby_func, &lobby->thread, n);
 	});
 }

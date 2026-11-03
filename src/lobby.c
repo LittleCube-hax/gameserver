@@ -10,6 +10,8 @@ void lobby_init(Lobby* this, size_t max_players)
 {
 	rwlock_init(&this->lock);
 	
+	this->stop = false;
+	
 	SVEC_INIT(&this->queued_joins);
 	SVEC_INIT(&this->queued_disconnects);
 	list_init(&this->players, sizeof(ClientPtrNode));
@@ -20,7 +22,7 @@ void lobby_init(Lobby* this, size_t max_players)
 
 void lobby_set_leader(Lobby* this, Client* leader)
 {
-	LOCK_WRITE(this->lock,
+	LOBBY_WRITE(this,
 	{
 		this->leader = leader;
 	});
@@ -28,18 +30,17 @@ void lobby_set_leader(Lobby* this, Client* leader)
 
 bool lobby_join(Lobby* this, Client* player)
 {
-	LOCK_WRITE(player->lock,
+	Lobby* last_lobby = NULL;
+	
+	CLIENT_READ(player,
 	{
 		if (player->current_lobby != NULL)
 		{
-			UNWRITE(player->lock);
-			return false;
+			last_lobby = player->current_lobby;
 		}
-		
-		player->current_lobby = this;
 	});
 	
-	LOCK_WRITE(this->lock,
+	LOBBY_WRITE(this,
 	{
 		if (this->players.length == this->max_players)
 		{
@@ -48,6 +49,19 @@ bool lobby_join(Lobby* this, Client* player)
 		}
 		
 		SVEC_PUSH(&this->queued_joins, player);
+	});
+	
+	if (last_lobby != NULL)
+	{
+		LOBBY_WRITE(last_lobby,
+		{
+			list_remove(&last_lobby->players, player->lobby_node);
+		});
+	}
+	
+	CLIENT_WRITE(player,
+	{
+		player->current_lobby = this;
 	});
 	
 	return true;
@@ -67,9 +81,6 @@ void lobby_update(Lobby* this)
 			player->lobby_node = n;
 		}
 		
-		SVEC_CLEAR(&this->queued_joins);
-		SVEC_CLEAR(&this->queued_disconnects);
-		
 		for (ClientPtrNode* n = this->players.head; n != NULL; n = n->node.next)
 		{
 			Client* player = n->client;
@@ -81,27 +92,58 @@ void lobby_update(Lobby* this)
 				continue;
 			}
 			
+			UNWRITE(this->lock);
 			client_handle(player);
+			WRITE(this->lock);
 		}
+	});
+	
+	SVEC_CLEAR(&this->queued_joins);
+	
+	for (size_t i = 0; i < this->queued_disconnects.length; ++i)
+	{
+		ClientPtrNode* n = (ClientPtrNode*) this->queued_disconnects.data[i];
+		Client* player = n->client;
 		
-		for (size_t i = 0; i < this->queued_disconnects.length; ++i)
+		if (this->leader == player)
 		{
-			ClientPtrNode* n = (ClientPtrNode*) this->queued_disconnects.data[i];
-			Client* player = n->client;
-			
-			list_remove(&this->players, n);
-			
-			if (this != &welcome_lobby)
+			if (this->players.length == 1)
 			{
-				lobby_join(&welcome_lobby, player);
+				lobby_stop(this);
 			}
 			
 			else
 			{
-				client_destroy(player);
+				LOBBY_WRITE(this,
+				{
+					this->leader = ((ClientPtrNode*) this->players.head)->client;
+				});
 			}
 		}
-	});
+		
+		LOBBY_WRITE(this,
+		{
+			list_remove(&this->players, n);
+		});
+		
+		CLIENT_WRITE(player,
+		{
+			player->current_lobby = NULL;
+		});
+		
+		if (this != &welcome_lobby)
+		{
+			client_reconnect(player);
+			lobby_join(&welcome_lobby, player);
+		}
+		
+		else
+		{
+			client_destroy(player);
+		}
+	}
+	
+	SVEC_CLEAR(&this->queued_disconnects);
 }
 
 void lobby_leave(Lobby* this, Client* player)
@@ -119,10 +161,18 @@ void lobby_leave(Lobby* this, Client* player)
 	});
 }
 
+void lobby_stop(Lobby* this)
+{
+	LOBBY_WRITE(this,
+	{
+		this->stop = true;
+	});
+}
+
 void lobby_destroy(Lobby* this)
 {
 	SVEC_RELEASE(&this->queued_joins);
 	SVEC_RELEASE(&this->queued_disconnects);
 	
-	// TODO: release list
+	list_release(&this->players);
 }

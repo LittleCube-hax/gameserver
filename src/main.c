@@ -60,7 +60,7 @@ DECLARE_RUNTIME_THREAD_FUNC(lobby_func)
 	LobbyNode* n = (LobbyNode*) ctx;
 	Lobby* this = &n->lobby;
 	
-	while (!quit)
+	while (!quit && !this->stop)
 	{
 		lobby_update(this);
 		server_sleep(0);
@@ -70,6 +70,8 @@ DECLARE_RUNTIME_THREAD_FUNC(lobby_func)
 	{
 		list_remove(&lobbies, n);
 	});
+	
+	lobby_destroy(this);
 	
 	thread_exit();
 	
@@ -120,10 +122,9 @@ int main(int argc, char** argv)
 	list_init(&clients, sizeof(ClientNode));
 	
 	lobby_init(&welcome_lobby, 128);
-	server_thread_t welcome_thread;
-	thread_start(welcome_func, &welcome_thread, NULL);
+	thread_start(welcome_func, &welcome_lobby.thread, NULL);
 	
-	list_init(&lobbies, sizeof(Lobby));
+	list_init(&lobbies, sizeof(LobbyNode));
 	
 	if (!config_read("config.toml", &config))
 	{
@@ -136,6 +137,9 @@ int main(int argc, char** argv)
 	{
 		LOGEQ("couldn't open socket\n");
 	}
+	
+	int reuse = 1;
+	setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 	
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -187,7 +191,6 @@ int main(int argc, char** argv)
 				if (now - client->last_pong >= 10000000000)
 				{
 					client_disconnect(client, "ping longer than 10 seconds");
-					
 					continue;
 				}
 				

@@ -18,6 +18,9 @@ typedef struct ClientPtrNode ClientPtrNode;
 struct Lobby
 {
 	server_rwlock_t lock;
+	server_thread_t thread;
+	
+	bool stop;
 	
 	SwapVector queued_joins;
 	SwapVector queued_disconnects;
@@ -49,3 +52,5 @@ void lobby_set_leader(Lobby* this, Client* leader);
 bool lobby_join(Lobby* this, Client* player);
 void lobby_update(Lobby* this);
 void lobby_leave(Lobby* this, Client* player);
+void lobby_stop(Lobby* this);
+void lobby_destroy(Lobby* this);
